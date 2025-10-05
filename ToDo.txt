@@ -1,0 +1,7 @@
+Speculation of what other Scripts to do:
+
+Gmail
+    -  past preset signatire/ending to written email
+
+Gocs
+    - Generate report from Sheets into Docs
