@@ -1,29 +1,29 @@
 /**
- * gets the values of a transaction from the psuedo-input form in the 
+ * gets the values of a transaction from the pseudo-input form in the 
  * Dashboard sheet and submits it to the Ledger sheet as a new entry.
  */
 function submitToLedger() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var dashboard = ss.getSheetByName("Dashboard");
   var ledger = ss.getSheetByName("Ledger");
   var ui = SpreadsheetApp.getUi();
   
-  var rawDate = String(dashboard.getRange("C3").getValue()).trim();
-  var description = String(dashboard.getRange("C4").getValue()).trim();
-  var account = String(dashboard.getRange("C5").getValue()).trim();
-  var debit = String(dashboard.getRange("C6").getValue()).trim();
-  var credit = String(dashboard.getRange("C7").getValue()).trim();
+  var rawDate = String(ledger.getRange("I4").getValue()).trim();
+  var description = String(ledger.getRange("I5").getValue()).trim();
+  var account = String(ledger.getRange("I6").getValue()).trim(); // For the Credit Row
+  var expenseType = String(ledger.getRange("I7").getValue()).trim();  // Expense Type -> For the Debit Row
+  var amount = String(ledger.getRange("I8").getValue()).trim();
   
-  if (description === "" || account === "") {
-    ui.alert("⚠️ Incomplete Input", "Description and Account are required fields.", ui.ButtonSet.OK);
+  if (description === "" || account === "" || expenseType === "") {
+    ui.alert("⚠️ Incomplete Input", "Description, Account, and Expense Type are required fields.", ui.ButtonSet.OK);
     return;
   }
   
-  if (debit === "" && credit === "") {
-    ui.alert("⚠️ Incomplete Input", "You must enter either a Debit or a Credit amount.", ui.ButtonSet.OK);
+  if (amount === "" || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    ui.alert("⚠️ Invalid Amount", "Please enter a valid amount greater than 0.", ui.ButtonSet.OK);
     return;
   }
   
+  // --- Date Parsing Logic ---
   var finalDate;  
   if (rawDate === "" || rawDate.toLowerCase() === "today") {
     finalDate = new Date();
@@ -42,7 +42,6 @@ function submitToLedger() {
       }
 
       year = parseInt(year, 10);
-      
       var parsedDate = new Date(year, month, day);
       
       if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() === year && parsedDate.getMonth() === month && parsedDate.getDate() === day) {
@@ -50,7 +49,6 @@ function submitToLedger() {
       }
     }
     
-    ui.alert(parts, ui.ButtonSet.OK);
     if (!finalDate) {
       ui.alert("⚠️ Invalid Date Format", "Please enter date as yyyy-mm-dd, yy-mm-dd, yyyy/mm/dd, yy/mm/dd, or 'today'.", ui.ButtonSet.OK);
       return;
@@ -59,14 +57,26 @@ function submitToLedger() {
   
   var formattedDateStr = Utilities.formatDate(finalDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
   
-  ledger.insertRowAfter(1); 
-  var targetRange = ledger.getRange("A2:E2");
-  targetRange.setValues([[formattedDateStr, description, account, debit, credit]]);
-  targetRange.setHorizontalAlignment("center");
-  targetRange.setFontWeight("normal");
-  targetRange.setFontStyle("normal");
-  targetRange.setFontLine("none");
+  // --- Writing Dual Entries to Ledger ---
+  
+  // Style resetting helper function to keep ledger clean
+  function applyRowFormatting(range) {
+    range.setHorizontalAlignment("center");
+    range.setFontWeight("normal");
+    range.setFontStyle("normal");
+    range.setFontLine("none");
+  }
 
-  dashboard.getRange("C4:C7").clearContent();
-  ui.alert("Success", "Entry added to Ledger successfully!", ui.ButtonSet.OK);
+  ledger.insertRowAfter(1); 
+  var creditRange = ledger.getRange("A2:E2");
+  creditRange.setValues([[formattedDateStr, description, account, "", amount]]);
+  applyRowFormatting(creditRange);
+
+  ledger.insertRowAfter(1); 
+  var debitRange = ledger.getRange("A2:E2");
+  debitRange.setValues([[formattedDateStr, description, expenseType, amount, ""]]);
+  applyRowFormatting(debitRange);
+
+  ledger.getRange("I5:I8").clearContent();
+  ui.alert("Success", "Double-entry transaction added successfully!", ui.ButtonSet.OK);
 }
