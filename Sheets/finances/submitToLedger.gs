@@ -1,5 +1,5 @@
 /**
- * gets the values of a transaction from the pseudo-input form in the 
+ * gets the values of a transaction from the psuedo-input form in the 
  * Dashboard sheet and submits it to the Ledger sheet as a new entry.
  */
 function submitToLedger() {
@@ -9,8 +9,8 @@ function submitToLedger() {
   
   var rawDate = String(ledger.getRange("I4").getValue()).trim();
   var description = String(ledger.getRange("I5").getValue()).trim();
-  var account = String(ledger.getRange("I6").getValue()).trim(); // For the Credit Row
-  var expenseType = String(ledger.getRange("I7").getValue()).trim();  // Expense Type -> For the Debit Row
+  var account = String(ledger.getRange("I6").getValue()).trim();
+  var expenseType = String(ledger.getRange("I7").getValue()).trim();
   var amount = String(ledger.getRange("I8").getValue()).trim();
   
   if (description === "" || account === "" || expenseType === "") {
@@ -57,9 +57,8 @@ function submitToLedger() {
   
   var formattedDateStr = Utilities.formatDate(finalDate, Session.getScriptTimeZone(), "yyyy-MM-dd");
   
-  // --- Writing Dual Entries to Ledger ---
+  // --- Writing Dual Entries by Shifting Cells (Columns A-E Only) ---
   
-  // Style resetting helper function to keep ledger clean
   function applyRowFormatting(range) {
     range.setHorizontalAlignment("center");
     range.setFontWeight("normal");
@@ -67,16 +66,19 @@ function submitToLedger() {
     range.setFontLine("none");
   }
 
-  ledger.insertRowAfter(1); 
-  var creditRange = ledger.getRange("A2:E2");
-  creditRange.setValues([[formattedDateStr, description, account, "", amount]]);
-  applyRowFormatting(creditRange);
+  var targetBlock = ledger.getRange("A2:E3");
+  targetBlock.insertCells(SpreadsheetApp.Dimension.ROWS); 
 
-  ledger.insertRowAfter(1); 
   var debitRange = ledger.getRange("A2:E2");
   debitRange.setValues([[formattedDateStr, description, expenseType, amount, ""]]);
   applyRowFormatting(debitRange);
 
+  var creditRange = ledger.getRange("A3:E3");
+  creditRange.setValues([[formattedDateStr, description, account, "", amount]]);
+  applyRowFormatting(creditRange);
+
+  // --- Clear Form & Update ---
   ledger.getRange("I5:I8").clearContent();
+  aggregateLedgerData();
   ui.alert("Success", "Double-entry transaction added successfully!", ui.ButtonSet.OK);
 }
