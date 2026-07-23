@@ -3,7 +3,7 @@
  * It will not affect conditional formatting or other cell styles.
  * Used in FINANCE Sheet to clear all data
  */
-function clearRangeToZero() {
+function clearFixedRangeToZero() {
   const SHEET_NAME = "FINANCE"; 
   const TARGET_RANGE = "C21:AG50"; 
   try {
